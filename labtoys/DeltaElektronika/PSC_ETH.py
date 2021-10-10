@@ -10,6 +10,8 @@
 #   Changelog:
 #      	-2020.11.10		version: 0.1.0
 #      		- Initial class
+#       -2021.09.29     version: 0.2.0
+#           - Adapt to new scpi librar
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
@@ -21,93 +23,92 @@
 #           Testing device:     http://www.delta-elektronika.nl/en/products/dc-power-supplies-800w-sm800-series.html    (2020.11.10) - manual taken from attached software
 #
 
-import scpi
+from ..scpi import SCPI_Socket
 from enum import Enum
 
 class PSC_ETH:
     def __init__( self, aIP="10.1.0.101", aPort=8462 ):
-        self.__device = scpi.SCPI_Socket( aIP, aPort )
-
-    #--------------------------------------------
-    def Connect( self, timeout=3 ):
-        self.__device.Connect( timeout )
-
-    #--------------------------------------------
-    def Close( self ):
-        self.__device.Close()
+        self.__device = SCPI_Socket( aIP, aPort )
+        self.__device.timeout = 3
+        self.__device.sendDalay = 0.001
 
     #----------------------------------------------------------------------------------------------
     # General Instructions
     #----------------------------------------------------------------------------------------------
 
-    def GetIDN( self ):
+    def GetIDN( self ) -> list:
         ans = self.__device.SendCommandGetAns( "*IDN?" )
-        idn = ans.split( ',' )
-        return idn
+        if( ans == None ):  return None
+        return ans.split( ',' )
 
     #--------------------------------------------
-    def SetProtectedUserData( self, info: str ):
+    def SetProtectedUserData( self, info: str ) -> bool:
         if( len(info) > 72 ):
             info = info[:72]
-        self.__device.SendCommand( "*PUD " + info )
+        return self.__device.SendCommand( "*PUD " + info )
 
     #--------------------------------------------
     def GetProtectedUserData( self ) -> str:
         ans = self.__device.SendCommandGetAns( "*PUD?" )
+        if( ans == None ):  return None
         return ans
 
     #--------------------------------------------
-    def SaveSettings( self, password: str="" ):
+    def SaveSettings( self, password: str="" ) -> bool:
         if( len(password) > 0 ):
-            self.__device.SendCommand( "*SAV " + password )
+            return self.__device.SendCommand( "*SAV " + password )
         else:
-            self.__device.SendCommand( "*SAV" )
+            return self.__device.SendCommand( "*SAV" )
 
     #--------------------------------------------
-    def RestoreToDefaultState( self ):
-        self.__device.SendCommand( "*RST" )
+    def RestoreToDefaultState( self ) -> bool:
+        return self.__device.SendCommand( "*RST" )
 
     #--------------------------------------------
-    def RecallCalibration( self ):
-        self.__device.SendCommand( "*RCL" )
+    def RecallCalibration( self ) -> bool:
+        return self.__device.SendCommand( "*RCL" )
 
     #----------------------------------------------------------------------------------------------
     # Source Subsystem
     #----------------------------------------------------------------------------------------------
 
-    def SetOutputMaxVoltage( self, max: float ):
-        self.__device.SendCommand( "SOUR:VOLT:MAX " + "{:.4f}".format( max ) )                      #SOURce:VOLTage:MAXimum
+    def SetOutputMaxVoltage( self, max: float ) -> bool:
+        return self.__device.SendCommand( "SOUR:VOLT:MAX " + "{:.4f}".format( max ) )               #SOURce:VOLTage:MAXimum
 
     #--------------------------------------------
     def GetOutputMaxVoltage( self ) -> float:
-        ans = self.__device.SendCommandGetAns( "SOUR:VOLT:MAX?" )                                   #SOURce:VOLTage:MAXimum               
+        ans = self.__device.SendCommandGetAns( "SOUR:VOLT:MAX?" )                                   #SOURce:VOLTage:MAXimum
+        if( ans == None ):  return None               
         return float( ans )
     
     #--------------------------------------------
-    def SetOutputMaxCurrent( self, max: float ):
-        self.__device.SendCommand( "SOUR:CURR:MAX " + "{:.4f}".format( max ) )                      #SOURce:CURRent:MAXimum
+    def SetOutputMaxCurrent( self, max: float ) -> bool:
+        return self.__device.SendCommand( "SOUR:CURR:MAX " + "{:.4f}".format( max ) )               #SOURce:CURRent:MAXimum
 
     #--------------------------------------------
     def GetOutputMaxCurrent( self ) -> float:
-        ans = self.__device.SendCommandGetAns( "SOUR:CURR:MAX?" )                                   #SOURce:CURRent:MAXimum               
+        ans = self.__device.SendCommandGetAns( "SOUR:CURR:MAX?" )                                   #SOURce:CURRent:MAXimum
+        if( ans == None ):  return None               
         return float( ans )
 
     #--------------------------------------------
-    def SetOutputVoltage( self, voltage: float ):
-        self.__device.SendCommand( "SOUR:VOLT " + "{:.4f}".format( voltage ) )                      #SOURce:VOLTage
+    def SetOutputVoltage( self, voltage: float ) -> bool:
+        return self.__device.SendCommand( "SOUR:VOLT " + "{:.4f}".format( voltage ) )               #SOURce:VOLTage
 
     #--------------------------------------------
     def GetOutputVoltage( self ) -> float:
-        ans = self.__device.SendCommandGetAns( "SOUR:VOLT?" )                                       #SOURce:VOLTage              
+        ans = self.__device.SendCommandGetAns( "SOUR:VOLT?" )                                       #SOURce:VOLTage
+        if( ans == None ):  return None           
         return float( ans )
 
     #--------------------------------------------
-    def SetOutputCurrent( self, current: float ):
-        self.__device.SendCommand( "SOUR:CURRent " + "{:.4f}".format( current ) )                   #SOURce:CURRent
+    def SetOutputCurrent( self, current: float ) -> bool:
+        return self.__device.SendCommand( "SOUR:CURRent " + "{:.4f}".format( current ) )            #SOURce:CURRent
 
     #--------------------------------------------
     def GetOutputCurrent( self ) -> float:
-        ans = self.__device.SendCommandGetAns( "SOUR:CURR?" )                                       #SOURce:CURRent           
+        ans = self.__device.SendCommandGetAns( "SOUR:CURR?" )                                       #SOURce:CURRent
+        if( ans == None ):  return None      
         return float( ans )
 
     #----------------------------------------------------------------------------------------------
@@ -116,48 +117,55 @@ class PSC_ETH:
 
     def MeasureOutputVoltage( self ) -> float:
         ans = self.__device.SendCommandGetAns( "MEAS:VOLT?" )                                       #MEASure:VOLTage
+        if( ans == None ):  return None
         return float( ans )
 
     #--------------------------------------------
     def MeasureOutputCurrent( self ) -> float:
-        ans = self.__device.SendCommandGetAns( "MEAS:CURR?" )                                       #MEASure:CURRent    
+        ans = self.__device.SendCommandGetAns( "MEAS:CURR?" )                                       #MEASure:CURRent
+        if( ans == None ):  return None
         return float( ans )
 
     #--------------------------------------------
     #commented as it's only avaibale in firmware version 3.4.0 - other on tested device
     #def MeasureOutputPower( self ) -> float:
     #    ans = self.__device.SendCommandGetAns( "MEAS:POW?" )                                       #MEASure:POWer
+    #    if( ans == None ):  return None
     #    return float( ans )
 
     #----------------------------------------------------------------------------------------------
     # Digital User In-/Outputs
     #----------------------------------------------------------------------------------------------
 
-    def SetDigitalOutputs( self, outputs: int ):
-        self.__device.SendCommand( "UOUT " + outputs )                                              #UOUTput
+    def SetDigitalOutputs( self, outputs: int ) -> bool:
+        outputs = outputs & 0x3F
+        return self.__device.SendCommand( "UOUT " + outputs )                                       #UOUTput
 
     #--------------------------------------------
     def GetDigitalOutputs( self ) -> int:
         ans = self.__device.SendCommandGetAns( "UOUT?" )                                            #UOUTput
+        if( ans == None ):  return None
         return int( ans )
 
     #--------------------------------------------
     def GetDigitalInputs( self ) -> int:
         ans = self.__device.SendCommandGetAns( "UINP:COND?" )                                       #UINPut:CONDition
+        if( ans == None ):  return None
         return int( ans )
 
     #----------------------------------------------------------------------------------------------
     # System Subsystem
     #----------------------------------------------------------------------------------------------
 
-    def LockFrontPanel( self ):
-        self.__device.SendCommand( "SYST:FRON 1" )                                                  #SYSTem:FRONtpanel[:STATus] 1 or ON
+    def LockFrontPanel( self ) -> bool:
+        return self.__device.SendCommand( "SYST:FRON 1" )                                           #SYSTem:FRONtpanel[:STATus] 1 or ON
 
-    def UnlockFrontPanel( self ):
-        self.__device.SendCommand( "SYST:FRON 0" )                                                  #SYSTem:FRONtpanel[:STATus] 0 or OFF
+    def UnlockFrontPanel( self ) -> bool:
+        return self.__device.SendCommand( "SYST:FRON 0" )                                           #SYSTem:FRONtpanel[:STATus] 0 or OFF
 
-    def GetFronPanelLockStatus( self ):
+    def GetFronPanelLockStatus( self ) -> bool:
         ans = self.__device.SendCommandGetAns( "SYST:FRON?" )                                       #SYSTem:FRONtpanel[:STATus]?
+        if( ans == None ):  return None
         ans = int( ans )
         if( ans == 0 ):
             return False
@@ -169,70 +177,75 @@ class PSC_ETH:
         LOCAL     = 'LOC'
 
     #--------------------------------------------
-    def EnableRemoteMode( self ):
-        self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.REMOTE.value )                  #SYSTem:REMote[:STATus] REMote
+    def EnableRemoteMode( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.REMOTE.value )           #SYSTem:REMote[:STATus] REMote
 
     #--------------------------------------------
-    def DisableRemoteMode( self ):
-        self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.LOCAL.value )                   #SYSTem:REMote[:STATus] LOCal
+    def DisableRemoteMode( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.LOCAL.value )            #SYSTem:REMote[:STATus] LOCal
 
     #--------------------------------------------
-    def GetRemoteModeStatus( self ):
+    def GetRemoteModeStatus( self ) -> REMOTE_STATUS:
         ans = self.__device.SendCommandGetAns( "SYST:REM?" )                                        #SYSTem:REMote[:STATus]?
+        if( ans == None ):  return None
         try:
             return self.REMOTE_STATUS( ans )
         except ValueError:
             return None
 
     #--------------------------------------------
-    def EnableRemoteVoltage( self ):
-        self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.REMOTE.value )               #SYSTem:REMote:CV[:STATus] REMote
+    def EnableRemoteVoltage( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.REMOTE.value )        #SYSTem:REMote:CV[:STATus] REMote
 
     #--------------------------------------------
-    def DisableRemoteVoltage( self ):
-        self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.LOCAL.value )                #SYSTem:REMote:CV[:STATus] LOCal
+    def DisableRemoteVoltage( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.LOCAL.value )         #SYSTem:REMote:CV[:STATus] LOCal
 
     #--------------------------------------------
-    def GetRemoteVoltageStatus( self ):
+    def GetRemoteVoltageStatus( self ) -> REMOTE_STATUS:
         ans = self.__device.SendCommandGetAns( "SYST:REM:CV?" )                                     #SYSTem:REMote:CV[:STATus]?
+        if( ans == None ):  return None
         try:
             return self.REMOTE_STATUS( ans )
         except ValueError:
             return None
 
     #--------------------------------------------
-    def EnableRemoteCurrent( self ):
-        self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.REMOTE.value )               #SYSTem:REMote:CC[:STATus] REMote
+    def EnableRemoteCurrent( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.REMOTE.value )        #SYSTem:REMote:CC[:STATus] REMote
 
     #--------------------------------------------
-    def DisableRemoteCurrent( self ):
-        self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.LOCAL.value )                #SYSTem:REMote:CC[:STATus] LOCal
+    def DisableRemoteCurrent( self ) -> bool:
+        return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.LOCAL.value )         #SYSTem:REMote:CC[:STATus] LOCal
 
     #--------------------------------------------
-    def GetRemoteCurrentStatus( self ):
+    def GetRemoteCurrentStatus( self ) -> REMOTE_STATUS:
         ans = self.__device.SendCommandGetAns( "SYST:REM:CC?" )                                     #SYSTem:REMote:CC[:STATus]?
+        if( ans == None ):  return None
         try:
             return self.REMOTE_STATUS( ans )
         except ValueError:
             return None
 
     #--------------------------------------------
-    def GetSystemError( self ):
+    def GetSystemError( self ) -> list:
         ans = self.__device.SendCommandGetAns( "SYST:ERR?" )                                        #SYSTem:ERRor?
+        if( ans == None ):  return None
         pos = ans.find( ',' )
         errorCode = int( ans[:pos] )
         errorMsg = ans[pos+1:]
         return [errorCode, errorMsg]
 
     #--------------------------------------------
-    def SetPassword( self, oldPassword="DEFAULT", newPassword="DEFAULT" ):
+    def SetPassword( self, oldPassword="DEFAULT", newPassword="DEFAULT" ) -> bool:
         if( (len(oldPassword) > 7 ) or (len(newPassword) > 7) ):
-            return
-        self.__device.SendCommand( "SYST:PASS " + oldPassword + "," + newPassword )                 #SYSTem:PASSword
+            return False
+        return self.__device.SendCommand( "SYST:PASS " + oldPassword + "," + newPassword )          #SYSTem:PASSword
 
     #--------------------------------------------
     def GetPasswordStatus( self ) -> bool:
         ans = self.__device.SendCommandGetAns( "SYST:PASS:STAT?" )                                  #SYSTem:PASSword:STATus?
+        if( ans == None ):  return None
         ans = int( ans )
         if( ans == 0 ):
             return False
@@ -242,16 +255,17 @@ class PSC_ETH:
     # Output
     #----------------------------------------------------------------------------------------------
 
-    def EnableOutput( self ):
-        self.__device.SendCommand( "OUTP 1" )                                                       #OUTPut
+    def EnableOutput( self ) -> bool:
+        return self.__device.SendCommand( "OUTP 1" )                                                #OUTPut
 
     #--------------------------------------------
-    def DisableOutput( self ):
-        self.__device.SendCommand( "OUTP 0" )                                                       #OUTPut
+    def DisableOutput( self ) -> bool:
+        return self.__device.SendCommand( "OUTP 0" )                                                #OUTPut
 
     #--------------------------------------------
-    def GetOutputStatus( self ):
+    def GetOutputStatus( self ) -> bool:
         ans = self.__device.SendCommandGetAns( "OUTP?" )                                            #OUTPut
+        if( ans == None ):  return None
         ans = int( ans )
         if( ans == 0 ):
             return False
@@ -261,85 +275,86 @@ class PSC_ETH:
     # Sequencer
     #----------------------------------------------------------------------------------------------
 
-    def GetSequenceCatalog( self ):
+    def GetSequenceCatalog( self ) -> list:
         ans = self.__device.SendCommandGetAns( "PROG:CAT?" )                                        #PROGram:CATalog
+        if( ans == None ):  return None
         return ans.split( '\n' )
 
     #--------------------------------------------
-    def SelectSequence( self, name: str ):
+    def SelectSequence( self, name: str ) -> bool:
         if( len(name) > 16 ):
             name = name[:16]
-        self.__device.SendCommand( "PROG:SEL:NAME " + name )                                        #PROGram:SELected:NAME
+        return self.__device.SendCommand( "PROG:SEL:NAME " + name )                                 #PROGram:SELected:NAME
 
     #--------------------------------------------
     def GetSelectedSequenceName( self ) -> str:
         ans = self.__device.SendCommandGetAns( "PROG:SEL:NAME?" )                                   #PROGram:SELected:NAME
+        if( ans == None ):  return None
         return str( ans )
 
     #--------------------------------------------
-    def SetSequenceStep( self, stepNo: int, command: str ):
+    def SetSequenceStep( self, stepNo: int, command: str ) -> bool:
         if( (stepNo <= 2000) and (stepNo >= 1) ):
-            self.__device.SendCommand( "PROG:SEL:STEP " + str(stepNo) + " " + command )             #PROGram:SELected:STEP
+            return self.__device.SendCommand( "PROG:SEL:STEP " + str(stepNo) + " " + command )      #PROGram:SELected:STEP
+        else:
+            return False
 
     #--------------------------------------------
     def GetSequenceStep( self, stepNo: int ) -> str:
         if( (stepNo <= 2000) and (stepNo >= 1) ):
             ans = self.__device.SendCommandGetAns( "PROG:SEL:STEP " + str(stepNo) + "?" )           #PROGram:SELected:STEP
-            if( ans == None ):
-                return None
+            if( ans == None ):  return None
             pos = ans.find( ' ' )
             ans = ans[(pos+1):]
             return ans
         return None
         
     #--------------------------------------------
-    def GetCompleteSequence( self ):
-        #idea below do not work, return only first step - delta send only first step
-        #ans = self.__device.SendCommandGetAns( "PROG:SEL:STEP ?" )                                 #PROGram:SELected:STEP
-        #print( ans )
-        #steps = ans.split( '\n' )
-        #for i in range( len(steps) ):
-        #    pos = steps[i].find( ' ' )
-        #    steps[i] = steps[i][(pos+1):]
-        #return steps
+    def GetCompleteSequence( self ) -> list:
+        #ans = self.__device.SendCommandGetAns( "PROG:SEL:STEP ?" )                                 #PROGram:SELected:STEP          <- this is not working, return only first step
         idx = 1
         step = ""
         steps = []
+        if( self.__device.Connect() == False ): return None
         while( step != "END" ):
             step = self.GetSequenceStep( idx )
             if( step == None ):
-                return steps
+                if( len(steps) == 0 ):  
+                    return None
+                else:
+                    return steps
             steps.append( step )
             idx = idx + 1
+        self.__device.Close()
         return steps
 
     #--------------------------------------------
-    def DeleteSelectedSequence( self ):
-        self.__device.SendCommand( "PROG:SEL:DEL" )                                                 #PROGram:SELected:DELete
+    def DeleteSelectedSequence( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:DEL" )                                          #PROGram:SELected:DELete
 
     #--------------------------------------------
-    #def DeleteAllSequences( self ):
-    #    self._device.SendCommand( "PROG:CAT:DEL" )                                                  #PROGram:CATalog:DELete
+    #def DeleteAllSequences( self ) -> bool:
+    #    return self._device.SendCommand( "PROG:CAT:DEL" )                                          #PROGram:CATalog:DELete
 
     #--------------------------------------------
-    def StartSequence( self ):
-        self.__device.SendCommand( "PROG:SEL:STAT RUN" )                                            #PROGram:SELected:STATe RUN
+    def StartSequence( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:STAT RUN" )                                     #PROGram:SELected:STATe RUN
 
     #--------------------------------------------
-    def PauseSequence( self ):
-        self.__device.SendCommand( "PROG:SEL:STAT PAUS" )                                           #PROGram:SELected:STATe PAUSe
+    def PauseSequence( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:STAT PAUS" )                                    #PROGram:SELected:STATe PAUSe
 
     #--------------------------------------------
-    def ContinueSequence( self ):
-        self.__device.SendCommand( "PROG:SEL:STAT CONT" )                                           #PROGram:SELected:STATe CONTinue
+    def ContinueSequence( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:STAT CONT" )                                    #PROGram:SELected:STATe CONTinue
 
     #--------------------------------------------
-    def NextStep( self ):
-        self.__device.SendCommand( "PROG:SEL:STAT NEXT" )                                           #PROGram:SELected:STATe NEXT
+    def NextStep( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:STAT NEXT" )                                    #PROGram:SELected:STATe NEXT
 
     #--------------------------------------------
-    def StopSequence( self ):
-        self.__device.SendCommand( "PROG:SEL:STAT STOP" )                                           #PROGram:SELected:STATe STOP
+    def StopSequence( self ) -> bool:
+        return self.__device.SendCommand( "PROG:SEL:STAT STOP" )                                    #PROGram:SELected:STATe STOP
 
     #---------------------------------------------------------------------
     class SEQUENCE_STATE(Enum):
@@ -348,8 +363,9 @@ class PSC_ETH:
         RUN     = 'RUN'
 
     #--------------------------------------------
-    def GetSequenceState( self ):
+    def GetSequenceState( self ) -> list:
         ans = self.__device.SendCommandGetAns( "PROG:SEL:STAT?" )                                   #PROGram:SELected:STATe
+        if( ans == None ):  return None
         if( ans.find(self.SEQUENCE_STATE.STOP.value) != -1 ):
             return [ self.SEQUENCE_STATE.STOP, None ]
         elif( ans.find(self.SEQUENCE_STATE.PAUSE.value) != -1 ):
@@ -361,8 +377,8 @@ class PSC_ETH:
         return [None, None]
 
     #--------------------------------------------
-    def TriggerStep( self ):
-        self.__device.SendCommand( "TRIG:IMM" )                                                     #TRIGger:IMMediate
+    def TriggerStep( self ) -> bool:
+        return self.__device.SendCommand( "TRIG:IMM" )                                              #TRIGger:IMMediate
         
 
 

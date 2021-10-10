@@ -10,6 +10,8 @@
 #   Changelog:
 #      	-2020.10.28		version: 0.1.0
 #      		- Initial class
+#       -2021.09.29     version: 0.2.0
+#           - Adapt to new scpi library
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
@@ -20,47 +22,40 @@
 #           Product page:       https://www.rigolna.com/products/digital-oscilloscopes/1000z/       (2020.11.10)
 #
 
-import scpi
+from ..scpi import SCPI_Socket
 from enum import Enum
 
 class DS1000Z:
-    def __init__( self, aIP="", aPort=5555 ):
-        self.__device = scpi.SCPI_Socket( aIP, aPort )
-
-    #--------------------------------------------
-    def Connect( self, timeout=10 ):
-        self.__device.Connect( timeout )
-
-    #--------------------------------------------
-    def Close( self ):
-        self.__device.Close()
+    def __init__( self, aIP, aPort=5555 ):
+        self.__device = SCPI_Socket( aIP, aPort )
+        self.__device.sendDalay = 0.001
 
     #----------------------------------------------------------------------------------------------
     #Basic Commands - works as basic keys on scope
     #----------------------------------------------------------------------------------------------
 
-    def Autoscale( self ):
-        self.__device.SendCommand( "AUT" )                                                          #AUToscale
+    def Autoscale( self ) -> bool:
+        return self.__device.SendCommand( "AUT" )                                                   #AUToscale
 
     #--------------------------------------------
-    def Clear( self ):
-        self.__device.SendCommand( "CLE" )                                                          #CLEar
+    def Clear( self ) -> bool:
+        return self.__device.SendCommand( "CLE" )                                                   #CLEar
 
     #--------------------------------------------
-    def Run( self ):
-        self.__device.SendCommand( "RUN" )                                                          #RUN
+    def Run( self ) -> bool:
+        return self.__device.SendCommand( "RUN" )                                                   #RUN
 
     #--------------------------------------------
-    def Stop( self ):
-        self.__device.SendCommand( "STOP" )                                                         #STOP
+    def Stop( self ) -> bool:
+        return self.__device.SendCommand( "STOP" )                                                  #STOP
 
     #--------------------------------------------
-    def Single( self ):
-        self.__device.SendCommand( "SING" )                                                         #SINGLE
+    def Single( self ) -> bool:
+        return self.__device.SendCommand( "SING" )                                                  #SINGLE
 
     #--------------------------------------------
-    def TriggerForce( self ):
-        self.__device.SendCommand( "TFOR" )                                                         #TFORce
+    def TriggerForce( self ) -> bool:
+        return self.__device.SendCommand( "TFOR" )                                                  #TFORce
 
     #----------------------------------------------------------------------------------------------
     #CHANNELS Commands
@@ -78,12 +73,14 @@ class DS1000Z:
         FULL        = 'OFF'
 
     #--------------------------------------------
-    def SetChannelBandwidth( self, chanelNumber: CHANNEL_NUMBER, bandwidth: CHANNEL_BANDWIDTH=CHANNEL_BANDWIDTH.FULL ):
-        self.__device.SendCommand( "CHAN" + chanelNumber.value + ":BWL " + bandwidth.value )
+    def SetChannelBandwidth( self, chanelNumber: CHANNEL_NUMBER, bandwidth: CHANNEL_BANDWIDTH=CHANNEL_BANDWIDTH.FULL ) -> bool:
+        return self.__device.SendCommand( "CHAN" + chanelNumber.value + ":BWL " + bandwidth.value )
 
     #--------------------------------------------
     def GetChannelBandwidth( self, chanelNumber: CHANNEL_NUMBER ) -> CHANNEL_BANDWIDTH:
         ans = self.__device.SendCommandGetAns( "CHAN" + chanelNumber.value + ":BWL?" )
+        if( ans == None ):  return ans
+
         try:
             return self.CHANNEL_BANDWIDTH( ans )
         except ValueError:
@@ -93,31 +90,47 @@ class DS1000Z:
     #DISPLAY Commands
     #----------------------------------------------------------------------------------------------
 
-    def ClearDisplay( self ):
-        self.__device.SendCommand( "DISP:CLE" )
+    def ClearDisplay( self ) -> bool:
+        return self.__device.SendCommand( "DISP:CLE" )
 
     #---------------------------------------------------------------------
-    def GetScreenDataBitmap( self ):
-        self.__device.SendCommand( "DISP:DATA?" )
+    def GetScreenDataBitmap( self ) -> list:
+        if( self.__device.Connect() == False ): return None
+        res = self.__device.SendCommand( "DISP:DATA?" )
+        if( res == False):  return None
         header = self.__device.GetAns( 2 )                                                          #get begin of header #x - where x is length of rest of header
+        if( header == None ):   return None
+
         header = int( header[1] )                                                                   #convert string to int
-        length = int( self.__device.GetAns( header ) ) + 1                                          #get rest of heder info - this is length of bytes in stream with screen data + ending \n
+        lengthInt = self.__device.GetAns( header )
+        if( lengthInt == None ):    return None
+        length = int( lengthInt ) + 1                                                               #get rest of heder info - this is length of bytes in stream with screen data + ending \n
 
         #get rest of stream data, loop reads data to end of stream in packet
         screen = b''
         while len(screen) < length:
             data = self.__device.GetRaw( length )
+            if( data == None ): return None
             screen = screen + data
+        self.__device.Close()
         
         screen = screen[:len(screen)-1]                                                               #remove /n from end of stream
+        self.__device.Close()
         return screen
 
     #--------------------------------------------
-    def SaveScreenToBitmap( self, path ):
+    def SaveScreenToBitmap( self, path ) -> bool:
         screen = self.GetScreenDataBitmap()
-        f = open( path, 'wb' )
-        f.write( screen )
-        f.close()
+        if( screen == None ): return False
+
+        try:
+            f = open( path, 'wb' )
+            f.write( screen )
+            f.close()
+        except:
+            return False
+
+        return True
 
     #---------------------------------------------------------------------
     class DISPLAY_TYPE(Enum):
@@ -125,12 +138,14 @@ class DS1000Z:
         DOTS        = 'DOTS'
 
     #--------------------------------------------
-    def SetDisplayType( self, type: DISPLAY_TYPE=DISPLAY_TYPE.VECTORS ):
-        self.__device.SendCommand( "DISP:TYPE " + type.value )
+    def SetDisplayType( self, type: DISPLAY_TYPE=DISPLAY_TYPE.VECTORS ) -> bool:
+        return self.__device.SendCommand( "DISP:TYPE " + type.value )
 
     #--------------------------------------------
     def GetDisplayType( self ) -> DISPLAY_TYPE:
         ans = self.__device.SendCommandGetAns( "DISP:TYPE?" )
+        if( ans == None ):  return None
+
         try:
             return self.DISPLAY_TYPE( ans )
         except ValueError:
@@ -140,34 +155,37 @@ class DS1000Z:
     #IEEE488.2 Common Commands
     #----------------------------------------------------------------------------------------------
 
-    def GetIDN( self ):
+    def GetIDN( self ) -> list:
         ans = self.__device.SendCommandGetAns( "*IDN?" )
-        idn = ans.split( ',' )
-        return idn
+        if( ans == None ):  return None
+        return ans.split( ',' )
 
     #---------------------------------------------------------------------
-    def ClearStatus( self ):
-        self.__device.SendCommand( "*CLS" )
+    def ClearStatus( self ) -> bool:
+        return self.__device.SendCommand( "*CLS" )
 
     #---------------------------------------------------------------------
-    def EnableOperationComplete( self ):
-        self.__device.SendCommand( "*OPC" )
+    def EnableOperationComplete( self ) -> bool:
+        return self.__device.SendCommand( "*OPC" )
 
     #---------------------------------------------------------------------
-    def IsOperationComplete( self ):
+    def IsOperationComplete( self ) -> bool:
         ans = self.__device.SendCommandGetAns( "*OPC?" )
+        if( ans == None ):  return None
+        
         if ans=="1":
             return True
         else: 
             return False
 
     #---------------------------------------------------------------------
-    def RestoreToDefaultState( self ):
-        self.__device.SendCommand( "*RST" )
+    def RestoreToDefaultState( self ) -> bool:
+        return self.__device.SendCommand( "*RST" )
 
     #---------------------------------------------------------------------
-    def SelfTest( self ):
+    def SelfTest( self ) -> int:
         ans = self.__device.SendCommandGetAns( "*TST?" )
+        if( ans == None ):  return None
         return int( ans )
 
     #----------------------------------------------------------------------------------------------
@@ -192,12 +210,14 @@ class DS1000Z:
         SPI         = 'SPI'
 
     #--------------------------------------------
-    def SetTriggerMode( self, mode: TRIGGER_MODE=TRIGGER_MODE.EDGE ):
-        self.__device.SendCommand( "TRIG:MODE " + mode.value )
+    def SetTriggerMode( self, mode: TRIGGER_MODE=TRIGGER_MODE.EDGE ) -> bool:
+        return self.__device.SendCommand( "TRIG:MODE " + mode.value )
 
     #--------------------------------------------
     def GetTriggerMode( self ) -> TRIGGER_MODE:
         ans = self.__device.SendCommandGetAns( "TRIG:MODE?" )
+        if( ans == None ):  return None
+
         try:
             return self.TRIGGER_MODE( ans )
         except ValueError:
@@ -214,6 +234,8 @@ class DS1000Z:
     #--------------------------------------------
     def GetTriggerStatus( self ) -> TRIGGER_STATUS:
         ans = self.__device.SendCommandGetAns( "TRIG:STAT?" )
+        if( ans == None ):  return None
+
         try:
             return self.TRIGGER_STATUS( ans )
         except ValueError:
@@ -247,12 +269,14 @@ class DS1000Z:
         D15     = 'D15'
 
     #--------------------------------------------
-    def SetWaveformSource( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ):
-        self.__device.SendCommand( "WAV:SOUR " + source.value )
+    def SetWaveformSource( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ) -> bool:
+        return self.__device.SendCommand( "WAV:SOUR " + source.value )
         
     #--------------------------------------------
     def GetWaveformSource( self ) -> WAVEFORM_SOURCE:
         ans = self.__device.SendCommandGetAns( "WAV:SOUR?" )
+        if( ans == None ): return None
+
         try:
             return self.WAVEFORM_SOURCE( ans )
         except ValueError:
@@ -265,12 +289,14 @@ class DS1000Z:
         RAW     = 'RAW'
 
     #--------------------------------------------
-    def SetWaveformMode( self, mode: WAVEFORM_MODE=WAVEFORM_MODE.NORMAL ):
-        self.__device.SendCommand( "WAV:MODE " + mode.value )
+    def SetWaveformMode( self, mode: WAVEFORM_MODE=WAVEFORM_MODE.NORMAL ) -> bool:
+        return self.__device.SendCommand( "WAV:MODE " + mode.value )
         
     #--------------------------------------------
     def GetWaveformMode( self ) -> WAVEFORM_MODE:
         ans = self.__device.SendCommandGetAns( "WAV:MODE?" )
+        if( ans == None ):  return None
+
         try:
             return self.WAVEFORM_MODE( ans )
         except ValueError:
@@ -283,12 +309,14 @@ class DS1000Z:
         ASCII   = 'ASC'
 
     #--------------------------------------------
-    def SetWaveformFormat( self, format: WAVEFORM_FORMAT=WAVEFORM_FORMAT.BYTE ):
-        self.__device.SendCommand( "WAV:FORM " + format.value )
+    def SetWaveformFormat( self, format: WAVEFORM_FORMAT=WAVEFORM_FORMAT.BYTE ) -> bool:
+        return self.__device.SendCommand( "WAV:FORM " + format.value )
         
     #--------------------------------------------
     def GetWaveformFormat( self ) -> WAVEFORM_FORMAT:
         ans = self.__device.SendCommandGetAns( "WAV:FORM?" )
+        if( ans == None ):  return None
+
         try:
             return self.WAVEFORM_FORMAT( ans )
         except ValueError:
@@ -297,49 +325,57 @@ class DS1000Z:
     #---------------------------------------------------------------------
     def GetWaveformXincrement( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:XINC?" )
+        if( ans == None ):  return None
         return float( ans )   
 
     #---------------------------------------------------------------------
     def GetWaveformXorigin( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:XOR?" )
+        if( ans == None ):  return None
         return float( ans )
 
     #---------------------------------------------------------------------
     def GetWaveformXreference( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:XREF?" )
+        if( ans == None ):  return None
         return float( ans )
 
     #---------------------------------------------------------------------
     def GetWaveformYincrement( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:YINC?" )
+        if( ans == None ):  return None
         return float( ans )
 
     #---------------------------------------------------------------------
     def GetWaveformYorigin( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:YOR?" )
+        if( ans == None ):  return None
         return float( ans )
 
     #---------------------------------------------------------------------
     def GetWaveformYreference( self ) -> float:
         ans = self.__device.SendCommandGetAns( "WAV:YREF?" )
+        if( ans == None ):  return None
         return float( ans )
 
     #---------------------------------------------------------------------
-    def SetWaveformStart( self, start: int ):
-        self.__device.SendCommand( "WAV:STAR " + str(start) )
+    def SetWaveformStart( self, start: int ) -> bool:
+        return self.__device.SendCommand( "WAV:STAR " + str(start) )
 
     #--------------------------------------------
     def GetWaveformStart( self ) -> int:
         ans = self.__device.SendCommandGetAns( "WAV:STAR?" )
+        if( ans == None ):  return None
         return int( ans )
 
     #---------------------------------------------------------------------
-    def SetWaveformStop( self, start: int ):
-        self.__device.SendCommand( "WAV:STOP " + str(start) )
+    def SetWaveformStop( self, start: int ) -> bool:
+        return self.__device.SendCommand( "WAV:STOP " + str(start) )
 
     #--------------------------------------------
     def GetWaveformStop( self ) -> int:
         ans = self.__device.SendCommandGetAns( "WAV:STOP?" )
+        if( ans == None ):  return None
         return int( ans )
 
     #---------------------------------------------------------------------
@@ -356,47 +392,55 @@ class DS1000Z:
         Y_REFERENCE = 9
 
     #--------------------------------------------
-    def GetWaveformPreamble( self ):
+    def GetWaveformPreamble( self ) -> list:
         ans = self.__device.SendCommandGetAns( "WAV:PRE?" )
+        if( ans == None ):  return None
         return ans.split( ',' )
 
 
     #---------------------------------------------------------------------
-    def GetWaveformDataRaw( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ):
-        self.Stop()                                                                                 #data can be rady only when scope is stoped
-        self.SetWaveformSource( source )                                                            #specify sourece of data
-        self.SetWaveformMode( self.WAVEFORM_MODE.RAW )                                              #raw data type
-        self.SetWaveformFormat( self.WAVEFORM_FORMAT.ASCII )                                        #data converted to ascii - no calculation needed
+    def GetWaveformDataRaw( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ) -> list:
+        if( self.__device.Connect() == False ): return None
+        if( self.Stop() == None ): return None                                                      #data can be rady only when scope is stoped
+        if( self.SetWaveformSource( source )  == False ): return None                               #specify sourece of data
+        if( self.SetWaveformMode( self.WAVEFORM_MODE.RAW ) == False ): return None                  #raw data type
+        if( self.SetWaveformFormat( self.WAVEFORM_FORMAT.ASCII ) == False ): return None            #data converted to ascii - no calculation needed
 
         #download information about waveform data
         preamble = self.GetWaveformPreamble()
+        if( preamble == None ): return None
         pointsCount = int( preamble[ self.WAVFORM_PREAMBLE_IDX.POINTS.value ] )
 
         currentStartIdx = 1
         points = b''
         while currentStartIdx <= pointsCount:
             #change range of data to read
-            self.SetWaveformStart( currentStartIdx )
+            if( self.SetWaveformStart( currentStartIdx ) == False ):    return None
             restOfPoints = pointsCount-currentStartIdx
             if restOfPoints > 100000:                                                                 #max package is 131072 points of data, 100000 is round number
-                self.SetWaveformStop( currentStartIdx+99999 )                                         #99999 couse with 1 is number of the last point
+                if( self.SetWaveformStop( currentStartIdx+99999 ) == False ):  return None            #99999 couse with 1 is number of the last point
             else:
-                self.SetWaveformStop( currentStartIdx + (pointsCount-currentStartIdx) )
+                if( self.SetWaveformStop( currentStartIdx + (pointsCount-currentStartIdx) ) == False ):  return None
 
             #start read data
-            self.__device.SendCommand( "WAV:DATA?" )
+            if( self.__device.SendCommand( "WAV:DATA?" ) == False ):    return None
             header = self.__device.GetAns( 2 )                                                      #get begin of header #x - where x is length of rest of header
+            if( header == None ):   return None
             header = int( header[1] )                                                               #convert string to int
-            length = int( self.__device.GetAns( header ) ) + 1                                      #get rest of heder info - this is length of bytes to read from stream + ending \n 
+            length = self.__device.GetAns( header )
+            if( length == None ):   return None
+            length = int( length ) + 1                                                              #get rest of heder info - this is length of bytes to read from stream + ending \n 
         
             #get rest of stream data, loop reads data to end of stream in packet
             data = b''
             while len(data) < length:
                 newData = self.__device.GetRaw( length )
+                if( newData == None ):  return None
                 data = data + newData
 
             points = points + data[:len(data)-1] + b','                                              #remove ending from data
             currentStartIdx = currentStartIdx + 100000
+        self.__device.Close()
 
         points = points[:len(points)-1]
         points = points.decode( "UTF-8" ).rstrip().split( ',' )
@@ -406,26 +450,32 @@ class DS1000Z:
         return points
 
     #---------------------------------------------------------------------
-    def GetWaveformDataScreen( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ):
-        self.Stop()                                                                                 #data can be rady only when scope is stoped
-        self.SetWaveformSource( source )                                                            #specify sourece of data
-        self.SetWaveformMode( self.WAVEFORM_MODE.NORMAL )                                           #raw data type
-        self.SetWaveformFormat( self.WAVEFORM_FORMAT.ASCII )                                        #data converted to ascii - no calculation needed
+    def GetWaveformDataScreen( self, source: WAVEFORM_SOURCE=WAVEFORM_SOURCE.CH1 ) -> list:
+        if( self.__device.Connect() == False ): return None
+        if( self.Stop() == False ): return None                                                     #data can be rady only when scope is stoped
+        if( self.SetWaveformSource( source ) == False ):    return None                             #specify sourece of data
+        if( self.SetWaveformMode( self.WAVEFORM_MODE.NORMAL ) == False ):   return None             #raw data type
+        if( self.SetWaveformFormat( self.WAVEFORM_FORMAT.ASCII ) == False ):    return None         #data converted to ascii - no calculation needed
 
-        self.SetWaveformStart( 1 )
-        self.SetWaveformStop( 1200 )   
+        if( self.SetWaveformStart( 1 ) == False ):  return None
+        if( self.SetWaveformStop( 1200 ) == False ):    return None
 
         #start read data
-        self.__device.SendCommand( "WAV:DATA?" )
-        header = self.__device.GetAns( 2 )                                                          #get begin of header #x - where x is length of rest of header
+        if( self.__device.SendCommand( "WAV:DATA?" ) == False ):    return None
+        header = self.__device.GetAns( 2, True )                                                          #get begin of header #x - where x is length of rest of header
+        if( header == None ):   return None
         header = int( header[1] )                                                                   #convert string to int
-        length = int( self.__device.GetAns( header ) ) + 1                                          #get rest of heder info - this is length of bytes to read from stream + ending \n
+        length = self.__device.GetAns( header )
+        if( length == None ):   return None
+        length = int( length ) + 1                                                                  #get rest of heder info - this is length of bytes to read from stream + ending \n
 
         #get stream data
         data = b''
         while len(data) < length:
             newData = self.__device.GetRaw( length )
+            if( newData == None ):  return None
             data = data + newData
+        self.__device.Close()
 
         data = data[:len(data)-1]                                                                   #remove ending from data
         data = data.decode( "UTF-8" ).rstrip().split( ',' )
