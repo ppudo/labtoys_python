@@ -12,6 +12,8 @@
 #      		- Initial class
 #       -2021.09.29     version: 0.2.0
 #           - Adapt to new scpi librar
+#       -2021.10.30     version: 0.2.1
+#           - Add functions to upload sequence to delta
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
@@ -380,7 +382,20 @@ class PSC_ETH:
     def TriggerStep( self ) -> bool:
         return self.__device.SendCommand( "TRIG:IMM" )                                              #TRIGger:IMMediate
         
+    #--------------------------------------------
+    def SendSequence( self, name : str, steps : list ) -> bool:
+        if( self.__device.Connect() == False ): return False
 
+        #delete current sequence with the same name
+        if( self.SelectSequence( name ) == False ): return False
+        if( self.DeleteSelectedSequence() == False ): return False
 
-    
+        #select sequence again and upload new sequence
+        if( self.SelectSequence( name ) == False ): return False
+        for i in range( len(steps) ):
+            if( self.SetSequenceStep(i+1, steps[i]) == False ): return False
+
+        self.__device.Close()
+        return True
+
         

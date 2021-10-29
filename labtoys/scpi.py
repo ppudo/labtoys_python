@@ -74,7 +74,7 @@ class SCPI_Socket:
         #try to send message
         try:
             self.__devSocket.sendall( data )
-            time.sleep( 0.001 )
+            time.sleep( self.sendDalay )
             if( stayConnected == False
                 and self.__stayConnected == False ):
                 self.Close()
