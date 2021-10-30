@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 setup(
     name='labtoys',
-    version='0.2.1',
+    version='0.2.2',
     description='Package for use with laboratory equipment',
     author='Pawel Pudo',
     author_email='ppudo@outlook.com',

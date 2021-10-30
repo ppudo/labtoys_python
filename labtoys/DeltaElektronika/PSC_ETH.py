@@ -14,6 +14,8 @@
 #           - Adapt to new scpi librar
 #       -2021.10.30     version: 0.2.1
 #           - Add functions to upload sequence to delta
+#       -2021.10.30     version: 0.2.2
+#           - Modify functions to set remote status
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
@@ -179,12 +181,11 @@ class PSC_ETH:
         LOCAL     = 'LOC'
 
     #--------------------------------------------
-    def EnableRemoteMode( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.REMOTE.value )           #SYSTem:REMote[:STATus] REMote
-
-    #--------------------------------------------
-    def DisableRemoteMode( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.LOCAL.value )            #SYSTem:REMote[:STATus] LOCal
+    def SetRemoteMode( self, mode: REMOTE_STATUS ) -> bool:
+        if( mode == self.REMOTE_STATUS.REMOTE ):
+            return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.REMOTE.value )       #SYSTem:REMote[:STATus] REMote
+        else:
+            return self.__device.SendCommand( "SYST:REM " + self.REMOTE_STATUS.LOCAL.value )        #SYSTem:REMote[:STATus] LOCal        
 
     #--------------------------------------------
     def GetRemoteModeStatus( self ) -> REMOTE_STATUS:
@@ -196,12 +197,11 @@ class PSC_ETH:
             return None
 
     #--------------------------------------------
-    def EnableRemoteVoltage( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.REMOTE.value )        #SYSTem:REMote:CV[:STATus] REMote
-
-    #--------------------------------------------
-    def DisableRemoteVoltage( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.LOCAL.value )         #SYSTem:REMote:CV[:STATus] LOCal
+    def SetRemoteVoltage( self, mode: REMOTE_STATUS ) -> bool:
+        if( mode == self.REMOTE_STATUS.REMOTE ):
+            return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.REMOTE.value )    #SYSTem:REMote:CV[:STATus] REMote
+        else:
+            return self.__device.SendCommand( "SYST:REM:CV " + self.REMOTE_STATUS.LOCAL.value )     #SYSTem:REMote:CV[:STATus] LOCal
 
     #--------------------------------------------
     def GetRemoteVoltageStatus( self ) -> REMOTE_STATUS:
@@ -213,12 +213,11 @@ class PSC_ETH:
             return None
 
     #--------------------------------------------
-    def EnableRemoteCurrent( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.REMOTE.value )        #SYSTem:REMote:CC[:STATus] REMote
-
-    #--------------------------------------------
-    def DisableRemoteCurrent( self ) -> bool:
-        return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.LOCAL.value )         #SYSTem:REMote:CC[:STATus] LOCal
+    def SetRemoteCurrent( self, mode: REMOTE_STATUS ) -> bool:
+        if( mode == self.REMOTE_STATUS.REMOTE ):
+            return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.REMOTE.value )    #SYSTem:REMote:CC[:STATus] REMote
+        else:
+            return self.__device.SendCommand( "SYST:REM:CC " + self.REMOTE_STATUS.LOCAL.value )     #SYSTem:REMote:CC[:STATus] LOCal
 
     #--------------------------------------------
     def GetRemoteCurrentStatus( self ) -> REMOTE_STATUS:
