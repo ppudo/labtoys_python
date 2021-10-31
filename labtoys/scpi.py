@@ -14,6 +14,8 @@
 #           - Return None when timeout occurs on receive - for test only on SendCommandGetAns
 #       -2021.09.17     version: 0.2.0
 #           - Change the way of sending messages. Now connecting is not requirred before sending message
+#       -2021.10.30     version: 0.2.1
+#           - Fix bugs from GetAnd ('\n' on the end). Add close counter for auto refresh functions. - bugs from c# code version
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
@@ -36,7 +38,7 @@ class SCPI_Socket:
         self.__stayConnected = False
         self.sendDalay = 0.001
         self.timeout = 10
-        
+        self.__ignoreCloseCounter = 0
 
     #----------------------------------------------------------------------------------------------
     def __ConnectInternal( self, stayConnected=False ) -> bool:
@@ -55,14 +57,22 @@ class SCPI_Socket:
 
     #----------------------------------------------------------------------------------------------
     def Connect( self ) -> bool:
-        return self.__ConnectInternal( stayConnected=True )
+        if( self.__devSocket == None ):
+            self.__ignoreCloseCounter = 0
+            return self.__ConnectInternal( stayConnected=True )
+        else:
+            self.__ignoreCloseCounter += 1
+            return True
 
     #----------------------------------------------------------------------------------------------
     def Close( self ):
-        if( self.__devSocket != None ):
-            self.__devSocket.shutdown( socket.SHUT_RDWR )
-            self.__devSocket.close()
-            self.__devSocket = None
+        if( self.__ignoreCloseCounter > 0 ):
+            self.__ignoreCloseCounter -= 1
+        else:
+            if( self.__devSocket != None ):
+                self.__devSocket.shutdown( socket.SHUT_RDWR )
+                self.__devSocket.close()
+                self.__devSocket = None
 
     #----------------------------------------------------------------------------------------------
     def SendRaw( self, data, stayConnected=False ) -> bool:
@@ -118,6 +128,7 @@ class SCPI_Socket:
         res = self.GetRaw( respondLength=respondLength, stayConnected=stayConnected )
         if( res != None ):
             res = res.decode( "UTF-8" ).rstrip()
+            res = res[:len(res)-1]
 
         return res
 
@@ -132,6 +143,13 @@ class SCPI_Socket:
         if( self.SendCommand( command, True ) == False ):
             return None
         return self.GetRaw( respondLength=respondLength, stayConnected=stayConnected )
+    
+    #------------------------------------------------------------------------------------------------------------------------------------------------
+    def WillIgnoreClose( self ):
+        if( self.__ignoreCloseCounter > 0 ):
+            return True
+        else:
+            return False
 
     
 
