@@ -3,13 +3,13 @@ from setuptools import find_packages
 
 setup(
     name='labtoys',
-    version='0.2.2',
+    version='0.2.3',
     description='Package for use with laboratory equipment',
     author='Pawel Pudo',
     author_email='ppudo@outlook.com',
     url='https://github.com/ppudo/labtoys_python.git',
     install_requires=[],
     packages=find_packages(),
-    keywords=['scpi', 'rigol', 'ds1000z', 'delta elektronika', 'psc_eth' ],
+    keywords=['scpi', 'rigol', 'ds1000z', 'delta elektronika', 'psc_eth', 'cts', 't-40/50' ],
     license='MIT'
 )

@@ -38,6 +38,7 @@ class SCPI_Socket:
         self.__stayConnected = False
         self.sendDalay = 0.001
         self.timeout = 10
+        self.lineEnding = "\n"
         self.__ignoreCloseCounter = 0
 
     #----------------------------------------------------------------------------------------------
@@ -99,7 +100,7 @@ class SCPI_Socket:
     #----------------------------------------------------------------------------------------------
     def SendCommand( self, command, stayConnected=False ) -> bool:
         #format command
-        command = command + "\n"
+        command = command + self.lineEnding
 
         return self.SendRaw( data=command.encode( "UTF-8" ), stayConnected=stayConnected )
 
@@ -133,10 +134,10 @@ class SCPI_Socket:
         return res
 
     #----------------------------------------------------------------------------------------------
-    def SendCommandGetAns( self, command, stayConnected=False ) -> str:
+    def SendCommandGetAns( self, command, respondLength=1024, stayConnected=False ) -> str:
         if( self.SendCommand( command, True ) == False ):
             return None
-        return self.GetAns( respondLength=1024, stayConnected=stayConnected )
+        return self.GetAns( respondLength, stayConnected=stayConnected )
     
     #----------------------------------------------------------------------------------------------
     def SendCommandGetRaw( self, command, respondLength=4096, stayConnected=False ):
