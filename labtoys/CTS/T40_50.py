@@ -10,12 +10,15 @@
 #   Changelog:
 #      	-2021.11.02		version: 0.1.0
 #      		- Initial class
+#       -2021.11.08     version: 0.1.1
+#           - update functions to assign return type
 #
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 #       Idea and changes proposal:
 #           
 #       
 #       Usefull information and links:
+#           ASCII protocol desription:  https://www.cts-umweltsimulation.de/en/component/emdown/downloadfile/10565.html?id=10565&Itemid=358     (2021.11.06)
 #           
 
 from ..scpi import SCPI_Socket
@@ -42,14 +45,14 @@ class T40_50:
 
     #----------------------------------------------------------------------------------------------
     def SetTemp( self, temp: float ) -> bool:
-        respond = self.__device.SendCommandGetAns( "a0 " + "{0:3.1f}".format(temp).zfill(5) )
+        respond = self.__device.SendCommandGetAns( "a0 " + "{0:3.1f}".format(temp).zfill(5), respondLength=1 )
         if( respond == None
             and (respond != "A" and respond != "a") ):
             return False
         return True
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
-    def StartChamber( self ):
+    def StartChamber( self ) -> bool:
         respond = self.__device.SendCommandGetAns( "s1 1" )
         if( respond == None
             and (respond != "S1" and respond != "s1") ):
@@ -57,7 +60,7 @@ class T40_50:
         return True
 
     #----------------------------------------------------------------------------------------------
-    def StopChamber( self ):
+    def StopChamber( self ) -> bool:
         respond = self.__device.SendCommandGetAns( "s1 0" )
         if( respond == None
             and (respond != "S1" and respond != "s1") ):
@@ -65,14 +68,14 @@ class T40_50:
         return True
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
-    def ReadGradientUp( self ):
+    def ReadGradientUp( self ) -> float:
         respond = self.__device.SendCommandGetAns( "U1", respondLength=14 )
         if( respond == None ):  return float('nan')
         value = float( respond[3:8] )
         return value
 
     #----------------------------------------------------------------------------------------------
-    def ReadGradientDown( self ):
+    def ReadGradientDown( self ) -> float:
         respond = self.__device.SendCommandGetAns( "U1", respondLength=14 )
         if( respond == None ):  return float('nan')
         value = float( respond[9:14] )
