@@ -1,3 +1,3 @@
 #__init__.py
 
-from .T40_50 import T40_50
+from .ASCII_Proto_ETH import ASCII_Proto_ETH

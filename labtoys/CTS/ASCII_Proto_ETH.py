@@ -23,7 +23,7 @@
 
 from ..scpi import SCPI_Socket
 
-class T40_50:
+class ASCII_Proto_ETH:
     def __init__( self, ip, port=1080 ):
         self.__device = SCPI_Socket( ip, port )
         self.__device.timeout = 3
@@ -32,37 +32,37 @@ class T40_50:
     #------------------------------------------------------------------------------------------------------------------------------------------------
     def GetMeasuredTemp( self ) -> float:
         respond = self.__device.SendCommandGetAns( "A0", respondLength=14 )
-        if( respond == None ):  return float('nan')
+        if( len( respond ) == 0 ):  return float('nan')
         value = float( respond[3:8] )
         return value
 
     #----------------------------------------------------------------------------------------------
     def ReadSetTemp( self ) -> float:
         respond = self.__device.SendCommandGetAns( "A0", respondLength=14 )
-        if( respond == None ):  return float('nan')
+        if( len( respond ) == 0  ):  return float('nan')
         value = float( respond[9:14] )
         return value
 
     #----------------------------------------------------------------------------------------------
     def SetTemp( self, temp: float ) -> bool:
         respond = self.__device.SendCommandGetAns( "a0 " + "{0:3.1f}".format(temp).zfill(5), respondLength=1 )
-        if( respond == None
+        if( len( respond ) == 0 
             and (respond != "A" and respond != "a") ):
             return False
         return True
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
     def StartChamber( self ) -> bool:
-        respond = self.__device.SendCommandGetAns( "s1 1" )
-        if( respond == None
+        respond = self.__device.SendCommandGetAns( "s1 1", respondLength=2 )
+        if( len( respond ) == 0 
             and (respond != "S1" and respond != "s1") ):
             return False
         return True
 
     #----------------------------------------------------------------------------------------------
     def StopChamber( self ) -> bool:
-        respond = self.__device.SendCommandGetAns( "s1 0" )
-        if( respond == None
+        respond = self.__device.SendCommandGetAns( "s1 0", respondLength=2 )
+        if( len( respond ) == 0 
             and (respond != "S1" and respond != "s1") ):
             return False
         return True
@@ -70,14 +70,14 @@ class T40_50:
     #------------------------------------------------------------------------------------------------------------------------------------------------
     def ReadGradientUp( self ) -> float:
         respond = self.__device.SendCommandGetAns( "U1", respondLength=14 )
-        if( respond == None ):  return float('nan')
+        if( len( respond ) == 0  ):  return float('nan')
         value = float( respond[3:8] )
         return value
 
     #----------------------------------------------------------------------------------------------
     def ReadGradientDown( self ) -> float:
         respond = self.__device.SendCommandGetAns( "U1", respondLength=14 )
-        if( respond == None ):  return float('nan')
+        if( len( respond ) == 0  ):  return float('nan')
         value = float( respond[9:14] )
         return value
     
