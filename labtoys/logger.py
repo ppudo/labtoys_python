@@ -88,7 +88,7 @@ class Logger:
         return self.__headers
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
-    def __WriteLine( self, line: str ) -> bool:
+    def __WriteLine( self, line: str, reOpen: bool = False ) -> bool:
         line = line + self.lineEnding
         self.__unsaved += 1
         try:
@@ -98,7 +98,8 @@ class Logger:
 
         self.__allLines += 1
         self.__linesInFile += 1
-        if( self.__unsaved >= self.maxUnsaved ):
+        if( self.__unsaved >= self.maxUnsaved
+            or reOpen ):
             self.__unsaved = 0
             return self.__ReOpen()
         return True
@@ -155,7 +156,7 @@ class Logger:
             self.__headers.append( columnsNames[i] )
         
         header = header[:-len(self.columnSeparator)]
-        return self.__WriteLine(header)
+        return self.__WriteLine(header, True)
 
     #----------------------------------------------------------------------------------------------
     def Log( self, data: list ) -> bool:
