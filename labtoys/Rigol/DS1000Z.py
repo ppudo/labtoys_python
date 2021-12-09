@@ -26,8 +26,8 @@ from ..scpi import SCPI_Socket
 from enum import Enum
 
 class DS1000Z:
-    def __init__( self, aIP, aPort=5555 ):
-        self.__device = SCPI_Socket( aIP, aPort )
+    def __init__( self, ip, port=5555 ):
+        self.__device = SCPI_Socket( ip, port )
         self.__device.sendDalay = 0.001
 
     #----------------------------------------------------------------------------------------------

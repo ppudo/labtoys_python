@@ -1,10 +1,10 @@
-#T40_50.py
+#ASCII_Proto_ETH.py
 #   Created on:	2020.11.02
 #       Author: ppudo
 #       e-mail:	ppudo@outlook.com
 #
 #   Project: 	labtoys
-#   Description: 	Class representing CTS T-40/50 climate chamber
+#   Description: 	Class representing CTS T-40/50 climate chamber - ethernet protocol
 #
 #
 #   Changelog:

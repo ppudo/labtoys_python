@@ -30,7 +30,12 @@ class Logger:
         if( not os.path.isabs(filePath) ):
             self.__fileFullPath = os.path.abspath(filePath)
 
-        pathElements = self.__fileFullPath.split( '\\' )
+        pathElements = []
+        if( os.name == 'nt' ):
+            pathElements = self.__fileFullPath.split( '\\' )
+        else:
+            pathElements = self.__fileFullPath.split( '/' )
+            
         self.__fileName = pathElements[ len(pathElements)-1 ]
         self.__path = self.__fileFullPath.replace( self.__fileName, "" )
         

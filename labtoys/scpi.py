@@ -40,7 +40,6 @@ class SCPI_Socket:
         self.sendDalay = 0.001
         self.timeout = 10
         self.lineEnding = "\n"
-        self.__ignoreCloseCounter = 0
         self.__stayConnected = list()
 
         self.__idxConnectionCounter = 0
@@ -58,7 +57,7 @@ class SCPI_Socket:
                 idx = oldIdx
                 self.__connectionList.append( idx )
                 self.__freeConnectionList.remove( idx )
-                print( "Get from free: " + str(idx) )
+                #print( "Get from free: " + str(idx) )
 
         #create new idx
         if( idx == 0 ):
@@ -66,7 +65,7 @@ class SCPI_Socket:
             #no checking as integers in python has no limits
             idx = self.__idxConnectionCounter
             self.__connectionList.append( idx )
-            print( "Create new idx: " + str(idx) )
+            #print( "Create new idx: " + str(idx) )
 
         #create socket if there is no socket
         if( self.__devSocket == None ):
@@ -112,7 +111,7 @@ class SCPI_Socket:
                 self.__devSocket.shutdown( socket.SHUT_RDWR )
                 self.__devSocket.close()
                 self.__devSocket = None
-            print( "Dispose scoket" )
+            #print( "Dispose scoket" )
 
         #if this was current connection we need to change it to other if there is other avaiable
         if( self.__currentConnectionIdx == connIdx ):
@@ -127,7 +126,7 @@ class SCPI_Socket:
         except ValueError:
             pass
             
-        print( "Close idx: " + str(connIdx) )
+        #print( "Close idx: " + str(connIdx) )
         return
 
     #----------------------------------------------------------------------------------------------
@@ -149,7 +148,7 @@ class SCPI_Socket:
             else:
                 self.__currentConnectionIdx = 0
 
-        print( "Free idx: " + str(connIdx) )
+        #print( "Free idx: " + str(connIdx) )
 
     #----------------------------------------------------------------------------------------------
     def SendRaw( self, data, stayConnected=False, connIdx=0 ) -> int:
