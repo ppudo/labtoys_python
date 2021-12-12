@@ -16,8 +16,9 @@
 #           
 #       
 #       Usefull information and links:
-#           Agilient 34970A/72A Commands:  https://documentation.help/Keysight-34970A-34972A/documentation.pdf     (2021.11.18)
+#           Agilent 34970A/72A Commands:  https://documentation.help/Keysight-34970A-34972A/documentation.pdf     (2021.11.18)
 #           User guide: https://www.keysight.com/zz/en/assets/9018-02644/user-manuals/9018-02644.pdf    (2021.11.18)
+#           Agilent 34970A/72A user guide: https://testworld.com/wp-content/uploads/user-guide-keysight-agilent-34970a-34972a-daq.pdf   (2021.12.12)
 # 
 
 from ..scpi import SCPI_Socket
@@ -30,11 +31,31 @@ class DAQ_3497xA:
         self.__device.timeout = 3
         self.__device.sendDalay = 0.005
 
+    #------------------------------------------------------------------------------------------------------------------------------------------------
+    # General Instructions
+    #------------------------------------------------------------------------------------------------------------------------------------------------
+    def GetIDN( self ) -> list:
+        ans = self.__device.SendCommandGetAns( "*IDN?" )
+        if( len(ans) == 0 ): return []
+        return ans.split( ',' )
+
+    #----------------------------------------------------------------------------------------------
+    class SYSTEM_CARD_IDX(Enum):
+        CARD_1  = '100'
+        CARD_2  = '200'
+        CARD_3  = '300'
+
+    #----------------------------------------------------------------------------------------------
+    def GetSystemCardType( self, cardIdx: SYSTEM_CARD_IDX=SYSTEM_CARD_IDX.CARD_1 ) -> list:
+        ans = self.__device.SendCommandGetAns( "SYST:CTYP? " + cardIdx.value )                      #SYSTem:CTYPe? {100|200|300}
+        if( len(ans) == 0 ): return []
+        return ans.split( ',' )
+
     #----------------------------------------------------------------------------------------------
     def DeviceReset( self ) -> bool:
         return self.__device.SendCommand( "*RST" ) == 0
 
-    #----------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------------------------------------------------------------------
     class VOLT_RANGE(Enum):
         RANGE_100mV     = '0.1'
         RANGE_1V        = '1'

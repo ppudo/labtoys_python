@@ -28,6 +28,7 @@ class ASCII_Proto_ETH:
         self.__device = SCPI_Socket( ip, port )
         self.__device.timeout = 3
         self.__device.lineEnding = ""
+        self.__device.sendDalay = 0.005
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
     def GetMeasuredTemp( self ) -> float:

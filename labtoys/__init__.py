@@ -4,3 +4,4 @@
 from . import scpi
 from . import logger
 from . import functions
+from . import CANoe

@@ -3,6 +3,11 @@ from labtoys.functions import Wait
 
 logger = DAQ_3497xA( "10.1.0.50" )
 
+print( "IDN: " + str(logger.GetIDN()))
+print( f"CARD 1: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_1)}" )
+print( f"CARD 2: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_2)}"  )
+print( f"CARD 3: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_3)}"  )
+
 '''
 logger.ConfigureThermocouple( 1, 1, logger.THERMOCOUPLE_TYPE.TYPE_K )
 logger.ConfigureVoltageDC( 1, 2, logger.VOLT_RANGE.RANGE_AUTO )

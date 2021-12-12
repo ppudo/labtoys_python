@@ -39,9 +39,9 @@ class Logger:
         self.__fileName = pathElements[ len(pathElements)-1 ]
         self.__path = self.__fileFullPath.replace( self.__fileName, "" )
         
-        print( "full path: " + self.__fileFullPath )
-        print( "fileName: " + self.__fileName )
-        print( "path: " + self.__path )
+        #print( "full path: " + self.__fileFullPath )
+        #print( "fileName: " + self.__fileName )
+        #print( "path: " + self.__path )
 
         testPath = pathElements[0] + '\\'
         pathElements.remove( pathElements[0] )
@@ -49,7 +49,7 @@ class Logger:
             testPath = os.path.join( testPath, pathElements[i] )
             if( not os.path.exists( testPath) ):
                 os.mkdir( testPath )
-                print( "create dir: " + testPath )
+                #print( "create dir: " + testPath )
 
         self.__file = None
         self.__OpenFile()
@@ -114,14 +114,14 @@ class Logger:
         try:
             self.__file = open( self.__fileFullPath, 'a' )
         except Exception as e:
-            print( e.args )
+            #print( e.args )
             self.__file = None
             return False
         return True  
 
     #----------------------------------------------------------------------------------------------
     def __ReOpen( self ) -> bool:
-        print( "Re open" )
+        #print( "Re open" )
         self.CloseFile
         return self.__OpenFile()
 

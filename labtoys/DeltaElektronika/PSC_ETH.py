@@ -34,7 +34,7 @@ class PSC_ETH:
     def __init__( self, aIP="10.1.0.101", aPort=8462 ):
         self.__device = SCPI_Socket( aIP, aPort )
         self.__device.timeout = 3
-        self.__device.sendDalay = 0.001
+        self.__device.sendDalay = 0.005
 
     #----------------------------------------------------------------------------------------------
     # General Instructions

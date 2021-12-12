@@ -4,7 +4,7 @@
 ### pip
 Command to add package using pip from github:
 ```sh
-pip install -e git+https://github.com/ppudo/labtoys.git#egg=labtoys
+pip install git+https://github.com/ppudo/labtoys.git#egg=labtoys
 ```
 
 ## License
