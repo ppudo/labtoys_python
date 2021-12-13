@@ -38,6 +38,7 @@ class SCPI_Socket:
 
         self.__devSocket = None
         self.sendDalay = 0.001
+        self.closeDelay = 0.001
         self.timeout = 10
         self.lineEnding = "\n"
         self.__stayConnected = list()
@@ -111,6 +112,7 @@ class SCPI_Socket:
                 self.__devSocket.shutdown( socket.SHUT_RDWR )
                 self.__devSocket.close()
                 self.__devSocket = None
+                time.sleep( self.closeDelay )
             #print( "Dispose scoket" )
 
         #if this was current connection we need to change it to other if there is other avaiable

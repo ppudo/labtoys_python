@@ -1,38 +1,39 @@
 from labtoys.Keysight.DAQ_3497xA import DAQ_3497xA
+import labtoys.Keysight.DAQ_channel_config as DAQ_CFG
 from labtoys.functions import Wait
 
-logger = DAQ_3497xA( "10.1.0.50" )
+daq = DAQ_3497xA( "10.1.0.106" )
 
-print( "IDN: " + str(logger.GetIDN()))
-print( f"CARD 1: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_1)}" )
-print( f"CARD 2: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_2)}"  )
-print( f"CARD 3: {logger.GetSystemCardType(logger.SYSTEM_CARD_IDX.CARD_3)}"  )
+daq.DeviceReset()
+Wait( "wait for reset", 3 )
 
-'''
-logger.ConfigureThermocouple( 1, 1, logger.THERMOCOUPLE_TYPE.TYPE_K )
-logger.ConfigureVoltageDC( 1, 2, logger.VOLT_RANGE.RANGE_AUTO )
-logger.ConfigureThermocouple( 1, 3, logger.THERMOCOUPLE_TYPE.TYPE_K )
-'''
+print( "IDN: " + str(daq.GetIDN()))
+print( f"CARD 1: {daq.GetSystemCardType(daq.SYSTEM_CARD_IDX.CARD_1)}" )
+print( f"CARD 2: {daq.GetSystemCardType(daq.SYSTEM_CARD_IDX.CARD_2)}" )
+print( f"CARD 3: {daq.GetSystemCardType(daq.SYSTEM_CARD_IDX.CARD_3)}" )
 
 print( "Start configuration" )
 scanList = []
 for i in range( 20 ):
-    logger.ConfigureVoltageDC( 1, i+1, logger.VOLT_RANGE.RANGE_AUTO )
-    scanList.append( [1, i+1] )
-
+    ch = DAQ_CFG.CHANNEL_CONFIG( DAQ_CFG.CHANNEL_TYPE.VOLT_DC, 1, i+1 )
+    ch.voltRange = DAQ_CFG.VOLT_RANGE.RANGE_AUTO
+    ch.scan = True
+    scanList.append( ch )
 for i in range( 20 ):
-    logger.ConfigureThermocouple( 2, i+1, logger.THERMOCOUPLE_TYPE.TYPE_K )
-    scanList.append( [2, i+1] )
-
-'''
-print( "Send scan list" )
-logger.ConfigureScanList( scanList )
+    ch = DAQ_CFG.CHANNEL_CONFIG( DAQ_CFG.CHANNEL_TYPE.VOLT_DC, 2, i+1 )
+    ch.voltRange = DAQ_CFG.VOLT_RANGE.RANGE_AUTO
+    ch.scan = True
+    scanList.append( ch )
+for i in range( 20 ):
+    ch = DAQ_CFG.CHANNEL_CONFIG( DAQ_CFG.CHANNEL_TYPE.TEMP_THERMOCOUPLE, 3, i+1 )
+    ch.thermocoupleType = DAQ_CFG.THERMOCOUPLE_TYPE.TYPE_K
+    ch.tempUnit = DAQ_CFG.TEMP_UNIT.CELSIUS
+    scanList.append( ch )
+    
+print( daq.ConfigureChannels(scanList) )
 Wait( "wait after configuration", 10 )
 
-
 for i in range( 10 ):
-    value = logger.Read()
+    value = daq.Read()
     print( f"{i}: {value}" )
     Wait( "next reading", 10 )
-
-'''

@@ -22,13 +22,13 @@
 # 
 
 from ..scpi import SCPI_Socket
-from enum import Enum
+from . import DAQ_channel_config as CFG
 
 class DAQ_3497xA:
 
     def __init__( self, ip: str, port=5025 ):
         self.__device = SCPI_Socket( ip, port )
-        self.__device.timeout = 3
+        self.__device.timeout = 15
         self.__device.sendDalay = 0.005
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,14 +40,14 @@ class DAQ_3497xA:
         return ans.split( ',' )
 
     #----------------------------------------------------------------------------------------------
-    class SYSTEM_CARD_IDX(Enum):
+    class SYSTEM_CARD_IDX:
         CARD_1  = '100'
         CARD_2  = '200'
         CARD_3  = '300'
 
     #----------------------------------------------------------------------------------------------
     def GetSystemCardType( self, cardIdx: SYSTEM_CARD_IDX=SYSTEM_CARD_IDX.CARD_1 ) -> list:
-        ans = self.__device.SendCommandGetAns( "SYST:CTYP? " + cardIdx.value )                      #SYSTem:CTYPe? {100|200|300}
+        ans = self.__device.SendCommandGetAns( "SYST:CTYP? " + cardIdx )                      #SYSTem:CTYPe? {100|200|300}
         if( len(ans) == 0 ): return []
         return ans.split( ',' )
 
@@ -56,69 +56,111 @@ class DAQ_3497xA:
         return self.__device.SendCommand( "*RST" ) == 0
 
     #------------------------------------------------------------------------------------------------------------------------------------------------
-    class VOLT_RANGE(Enum):
-        RANGE_100mV     = '0.1'
-        RANGE_1V        = '1'
-        RANGE_10V       = '10'
-        RANGE_100V      = '100'
-        RANGE_300V      = '300'
-        RANGE_AUTO      = 'AUTO'
-
-    #---------------------------------------------------------------------
-    def ConfigureVoltageDC( self, card, channel, range: VOLT_RANGE = VOLT_RANGE.RANGE_AUTO ) -> bool:
-        command = "CONF:VOLT:DC "
-        command += range.value + ","
-        command += self.__ConvertToChannelString( card, channel )
-        return self.__device.SendCommand( command ) == 0
-
-    #---------------------------------------------------------------------
-    def ConfigureVoltageAC( self, card, channel, range: VOLT_RANGE = VOLT_RANGE.RANGE_AUTO ) -> bool:
-        command = "CONF:VOLT:AC "
-        command += range.value + ","
-        command += self.__ConvertToChannelString( card, channel )
-        return self.__device.SendCommand( command ) == 0
+    # Channel Configurator
+    #------------------------------------------------------------------------------------------------------------------------------------------------
+    def ConfigVoltageDC( self, card: int, channel: int, range: CFG.VOLT_RANGE=CFG.VOLT_RANGE.RANGE_AUTO ) -> CFG.CHANNEL_CONFIG:
+        channelCfg = CFG.CHANNEL_CONFIG( CFG.CHANNEL_TYPE.VOLT_DC, card, channel )
+        channelCfg.voltRange = range
+        channelCfg.scan = True
+        if( self.__ConfigVoltageDC( channelCfg ) ):
+            return channelCfg
+        else:
+            return None
 
     #----------------------------------------------------------------------------------------------
-    class THERMOCOUPLE_TYPE(Enum):
-        TYPE_B  = 'B'
-        TYPE_E  = 'E'
-        TYPE_J  = 'J'
-        TYPE_K  = 'K'
-        TYPE_N  = 'N'
-        TYPE_R  = 'R'
-        TYPE_S  = 'S'
-        TYPE_T  = 'T'
-
-    #---------------------------------------------------------------------
-    def ConfigureThermocouple( self, card: int, channel: int, type: THERMOCOUPLE_TYPE=THERMOCOUPLE_TYPE.TYPE_K ) -> bool:
-        command = "CONF:TEMP TC,"
-        command += type.value + ","
-        command += self.__ConvertToChannelString( card, channel )
-        return self.__device.SendCommand( command ) == 0
+    def __ConfigVoltageDC( self, channel: CFG.CHANNEL_CONFIG, connIdx=0 ) -> bool:
+        if( channel.channelType == CFG.CHANNEL_TYPE.VOLT_DC ):
+            command = "CONF:VOLT:DC "
+            command += f"{channel.voltRange},{channel.ChannelString(True)}"
+            return self.__device.SendCommand( command, connIdx=connIdx ) == connIdx
+        else:
+            return False
 
     #----------------------------------------------------------------------------------------------
-    class TEMP_UNIT(Enum):
-        CELSIUS     = 'C'
-        FAHRENHEIT  = 'F'
-        KELVIN      = 'K'
-
-    #---------------------------------------------------------------------
-    def SetTempeartureUnit( self, card: int, channel: int, unit: TEMP_UNIT=TEMP_UNIT.CELSIUS ) -> bool:
-        command = "UNIT:TEMP "
-        command += unit.value + ","
-        command += self.__ConvertToChannelString( card, channel )
-        return self.__device.SendCommand( command ) == 0
+    def ConfigVoltageAC( self, card: int, channel: int, range: CFG.VOLT_RANGE=CFG.VOLT_RANGE.RANGE_AUTO ) -> CFG.CHANNEL_CONFIG:
+        channelCfg = CFG.CHANNEL_CONFIG( CFG.CHANNEL_TYPE.VOLT_AC, card, channel )
+        channelCfg.voltRange = range
+        channelCfg.scan = True
+        if( self.__ConfigVoltageAC( channelCfg ) ):
+            return channelCfg
+        else:
+            return None
 
     #----------------------------------------------------------------------------------------------
-    def ConfigureScanList( self, list: list ) -> bool:
-        #list element '[ card: int, channel: int ]'
+    def __ConfigVoltageAC( self, channel: CFG.CHANNEL_CONFIG, connIdx=0 ) -> bool:
+        if( channel.channelType == CFG.CHANNEL_TYPE.VOLT_AC ):
+            command = "CONF:VOLT:AC "
+            command += f"{channel.voltRange},{channel.ChannelString(True)}"
+            return self.__device.SendCommand( command, connIdx=connIdx ) == connIdx
+        else:
+            return False
+
+    #----------------------------------------------------------------------------------------------
+    def ConfigTempThermocuple( self, card: int, channel: int, type: CFG.THERMOCOUPLE_TYPE=CFG.THERMOCOUPLE_TYPE.TYPE_K ) -> bool:
+        channelCfg = CFG.CHANNEL_CONFIG( CFG.CHANNEL_TYPE.TEMP_THERMOCOUPLE, card, channel )
+        channelCfg.thermocoupleType = type
+        channelCfg.scan = True
+        if( self.__ConfigTempThermocuple( channelCfg ) ):
+            return channelCfg
+        else:
+            return None
+
+    #----------------------------------------------------------------------------------------------
+    def __ConfigTempThermocuple( self, channel: CFG.CHANNEL_CONFIG, connIdx=0 ) -> bool:
+        if( channel.channelType == CFG.CHANNEL_TYPE.TEMP_THERMOCOUPLE ):
+            command = "CONF:TEMP TC,"
+            command += f"{channel.thermocoupleType},{channel.ChannelString(True)}"
+            return self.__device.SendCommand( command, connIdx=connIdx ) == connIdx
+        else:
+            return False
+
+    #------------------------------------------------------------------------------------------------------------------------------------------------
+    def __SendScanList( self, channels: list, connIdx=0 ) -> bool:
         command = "ROUT:SCAN (@"
-        for i in range( len(list) ):
-            if( i != 0 ):
-                command += ","
-            command += '{:01}'.format( list[i][0] ) + '{:02}'.format( list[i][1] )
+        count = 0
+        for ch in channels:
+            if( ch.scan ):
+                if( count != 0 ):
+                    command += ","
+                command += ch.ChannelString()
+                count += 1
         command += ")"
-        return self.__device.SendCommand( command ) == 0
+        if( count == 0 ):
+            return False
+        return self.__device.SendCommand( command, connIdx=connIdx ) == connIdx
+
+    #----------------------------------------------------------------------------------------------
+    def SendScanList( self, channels: list ) -> bool:
+        return self.__SendScanList( channels )    
+
+    #----------------------------------------------------------------------------------------------
+    def ConfigureChannel( self, channel: CFG.CHANNEL_CONFIG, connIdx=0 ) -> bool:
+        if( channel.channelType == CFG.CHANNEL_TYPE.VOLT_DC ):
+            return self.__ConfigVoltageDC( channel, connIdx )
+        elif( channel.channelType == CFG.CHANNEL_TYPE.VOLT_AC ):
+            return self.__ConfigVoltageAC( channel, connIdx )
+        elif( channel.channelType == CFG.CHANNEL_TYPE.TEMP_THERMOCOUPLE ):
+            return self.__ConfigTempThermocuple( channel, connIdx )
+        else:
+            return False
+
+    #----------------------------------------------------------------------------------------------
+    def ConfigureChannels( self, channels: list ) -> bool:
+        connIdx = self.__device.Connect()
+        if( connIdx == -1 ):    return False
+
+        #configure channels
+        status = True
+        for i, ch, in enumerate( channels ):
+            status &= self.ConfigureChannel( ch, connIdx )
+            if( status == False ): break
+        
+        #send scan list
+        if( status ):
+            status &= self.__SendScanList( channels, connIdx )
+
+        self.__device.Close( connIdx )
+        return status
 
     #----------------------------------------------------------------------------------------------
     def Read( self ) -> list:
@@ -130,7 +172,3 @@ class DAQ_3497xA:
         for i in range( len( result ) ):
             result[i] = float( result[i] )
         return result
-
-    #------------------------------------------------------------------------------------------------------------------------------------------------
-    def __ConvertToChannelString( self, card: int, channel: int ) -> str:
-        return "(@" + '{:01}'.format( card ) + '{:02}'.format( channel ) + ")"
