@@ -65,12 +65,18 @@ class CHANNEL_CONFIG:
         self.thermocoupleType = THERMOCOUPLE_TYPE.TYPE_K
         self.tempUnit = TEMP_UNIT.CELSIUS
 
+        #Mx+B scaling
+        self.gain = 1.0
+        self.offset = 0.0
+        #self.unit = #TO DO
+
     #----------------------------------------------------------------------------------------------
     def ChannelString( self, withAt=False ) -> str:
-        res = '{:01}'.format( self.card ) + '{:02}'.format( self.channel )
-        if( withAt ):
-            res = "(@" + res + ")"
-        return res
+        return ChannelString( self.card, self.channel, withAt )
+
+    #----------------------------------------------------------------------------------------------
+    def Scaling( self, value: float ) -> float:
+        return value * self.gain + self.offset
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------
 def ChannelString( card, channel, withAt=False ) -> str:
